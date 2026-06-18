@@ -1,0 +1,15 @@
+{
+	"name": "nrdsadf",
+	"properties": {
+		"trustModeClaimForMi": {
+			"value": "Disabled",
+			"editable": true
+		}
+	},
+	"location": "southeastasia",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "4d976615-c667-4469-8e32-34f2dddb913f",
+		"tenantId": "f4dd160e-f8db-458e-a616-04c2dc0e70ad"
+	}
+}

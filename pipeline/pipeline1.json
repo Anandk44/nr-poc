@@ -1,0 +1,113 @@
+{
+	"name": "pipeline1",
+	"properties": {
+		"activities": [
+			{
+				"name": "LoadControl",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderStoredProcedureName": "[dbo].[usp_CustomSIL_OBAW_LoadControlIns_test]",
+						"storedProcedureParameters": {
+							"FOLDER_NAME": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().parameters.FOLDER_NAME",
+									"type": "Expression"
+								}
+							},
+							"OUT_PARAMETER": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().parameters.OUT_PARAMETER",
+									"type": "Expression"
+								}
+							},
+							"OUT_STEP_KEY": {
+								"type": "Int32",
+								"value": {
+									"value": "@pipeline().parameters.OUT_STEP_KEY",
+									"type": "Expression"
+								}
+							},
+							"WORKFLOW_NAME": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().parameters.WORKFLOW_NAME",
+									"type": "Expression"
+								}
+							}
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "AzureSynapseAnalyticsTable1",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": true
+				}
+			},
+			{
+				"name": "Set variable1",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "LoadControl",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "job_variable_param",
+					"value": {
+						"value": "@activity('LoadControl').output.firstRow.OUT_PARAMETER",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"FOLDER_NAME": {
+				"type": "string",
+				"defaultValue": "''"
+			},
+			"OUT_PARAMETER": {
+				"type": "string",
+				"defaultValue": "''"
+			},
+			"OUT_STEP_KEY": {
+				"type": "int",
+				"defaultValue": 0
+			},
+			"WORKFLOW_NAME": {
+				"type": "string",
+				"defaultValue": "CustomSIL_OBAW_POValue_fact"
+			}
+		},
+		"variables": {
+			"job_variable_param": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-06-15T10:10:36Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

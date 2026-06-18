@@ -1,0 +1,76 @@
+{
+	"name": "notebook_pipleine",
+	"properties": {
+		"activities": [
+			{
+				"name": "Notebook1",
+				"type": "DatabricksNotebook",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/Users/vidhyarajan95@gmail.com/default/povaluefact",
+					"baseParameters": {
+						"ETL_PROC_WID": {
+							"value": "@pipeline().parameters.ETL_PROC_WID",
+							"type": "Expression"
+						},
+						"INITIAL_EXTRACT_DATE": {
+							"value": "@pipeline().parameters.INITIAL_EXTRACT_DATE",
+							"type": "Expression"
+						},
+						"LAST_EXTRACT_DATE": {
+							"value": "@pipeline().parameters.LAST_EXTRACT_DATE",
+							"type": "Expression"
+						},
+						"M_FAILURE_VAR": {
+							"value": "@pipeline().parameters.M_FAILURE_VAR",
+							"type": "Expression"
+						},
+						"M_SUCCESS_VAR": {
+							"value": "@pipeline().parameters.M_SUCCESS_VAR",
+							"type": "Expression"
+						},
+						"STEP_KEY": {
+							"value": "@pipeline().parameters.STEP_KEY",
+							"type": "Expression"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "AzureDatabricks1",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"ETL_PROC_WID": {
+				"type": "string"
+			},
+			"INITIAL_EXTRACT_DATE": {
+				"type": "string"
+			},
+			"LAST_EXTRACT_DATE": {
+				"type": "string"
+			},
+			"M_FAILURE_VAR": {
+				"type": "string"
+			},
+			"M_SUCCESS_VAR": {
+				"type": "string"
+			},
+			"STEP_KEY": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-06-15T07:14:23Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

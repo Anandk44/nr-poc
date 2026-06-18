@@ -1,0 +1,633 @@
+{
+	"name": "CustomSIL_OBAW_POValue_fact_1",
+	"properties": {
+		"activities": [
+			{
+				"name": "Lkp_CustomSIL_OBAW_ConfigControlSetup",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderStoredProcedureName": "[dbo].[usp_ConfigControl_SetActive]",
+						"storedProcedureParameters": {
+							"WorkflowName": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().parameters.WorkflowName",
+									"type": "Expression"
+								}
+							}
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "AzureSynapseAnalyticsTable1",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": true
+				}
+			},
+			{
+				"name": "SetVar_CustomSIL_OBAW_ConfigControlSetup",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Lkp_CustomSIL_OBAW_ConfigControlSetup",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "v_NewParameterText",
+					"value": {
+						"value": "@activity('Lkp_CustomSIL_OBAW_ConfigControlSetup').output.firstRow.OUT_PARAMETER",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Merge_CustomSIL_OBAW_ConfigControlSetup",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "SetVar_CustomSIL_OBAW_ConfigControlSetup",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PL_MergeParameterFile",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"p_NewParameterText": {
+							"value": "@variables('v_NewParameterText')",
+							"type": "Expression"
+						},
+						"p_FileName": {
+							"value": "@pipeline().parameters.p_FileName",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "SetVar_FinalParameterContent",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Merge_CustomSIL_OBAW_ConfigControlSetup",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "v_FinalParameterContent",
+					"value": {
+						"value": "@activity('Merge_CustomSIL_OBAW_ConfigControlSetup').output.pipelineReturnValue.filecontent",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Writing_to_ADLS1",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "SetVar_FinalParameterContent",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "write_param_file",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"p_StorageAccount": {
+							"value": "@pipeline().parameters.p_StorageAccount",
+							"type": "Expression"
+						},
+						"p_FileSystem": {
+							"value": "@pipeline().parameters.p_FileSystem",
+							"type": "Expression"
+						},
+						"p_Directory": {
+							"value": "@pipeline().parameters.p_Directory",
+							"type": "Expression"
+						},
+						"p_FileName": {
+							"value": "@pipeline().parameters.p_FileName",
+							"type": "Expression"
+						},
+						"p_FileContent": {
+							"value": "@variables('v_FinalParameterContent')",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Lkp_CustomSDE_OBAW_LoadControlIns",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Writing_to_ADLS1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderStoredProcedureName": "[dbo].[usp_CustomSIL_OBAW_LoadControlIns_test]",
+						"storedProcedureParameters": {
+							"FOLDER_NAME": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().parameters.FOLDER_NAME",
+									"type": "Expression"
+								}
+							},
+							"OUT_PARAMETER": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().parameters.OUT_PARAMETER",
+									"type": "Expression"
+								}
+							},
+							"OUT_STEP_KEY": {
+								"type": "Int32",
+								"value": {
+									"value": "@pipeline().parameters.OUT_STEP_KEY",
+									"type": "Expression"
+								}
+							},
+							"WORKFLOW_NAME": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().parameters.WORKFLOW_NAME",
+									"type": "Expression"
+								}
+							}
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "AzureSynapseAnalyticsTable1",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": true
+				}
+			},
+			{
+				"name": "CustomSDE_OBAW_LoadControlIns_OUT_STEP_KEY",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "CustomSDE_OBAW_LoadControlIns_OUT_PARAMETER",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "set_variable_param_step",
+					"value": {
+						"value": "@activity('Lkp_CustomSDE_OBAW_LoadControlIns').output.firstRow.OUT_STEP_KEY",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "CustomSDE_OBAW_LoadControlIns_OUT_PARAMETER",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Lkp_CustomSDE_OBAW_LoadControlIns",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "job_variable_param",
+					"value": {
+						"value": "@activity('Lkp_CustomSDE_OBAW_LoadControlIns').output.firstRow.OUT_PARAMETER",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Final_Parameter_data",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "CustomSDE_OBAW_LoadControlIns_OUT_STEP_KEY",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "final_merged_data",
+					"value": {
+						"value": "@concat(\n    variables('v_FinalParameterContent'),\n    decodeUriComponent('%0A'),\n    variables('job_variable_param')\n)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Writing_to_ADLS2",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Final_Parameter_data",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "write_param_file",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"p_StorageAccount": {
+							"value": "@pipeline().parameters.p_StorageAccount",
+							"type": "Expression"
+						},
+						"p_FileSystem": {
+							"value": "@pipeline().parameters.p_FileSystem",
+							"type": "Expression"
+						},
+						"p_Directory": {
+							"value": "@pipeline().parameters.p_Directory",
+							"type": "Expression"
+						},
+						"p_FileName": {
+							"value": "@pipeline().parameters.p_FileName",
+							"type": "Expression"
+						},
+						"p_FileContent": {
+							"value": "@variables('final_merged_data')",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "CustomSIL_OBAW_JobControlIns",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Writing_to_ADLS2",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[usp_CustomSIL_OBAW_JobControlIns]",
+					"storedProcedureParameters": {
+						"STEP_KEY": {
+							"value": {
+								"value": "@variables('set_variable_param_step')",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "synapselink",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "CustomSIL_OBAW_POValue_fact",
+				"type": "DatabricksNotebook",
+				"dependsOn": [
+					{
+						"activity": "CustomSIL_OBAW_JobControlIns",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/Users/vidhyarajan95@gmail.com/default/povaluefact",
+					"baseParameters": {
+						"ETL_PROC_WID": {
+							"value": "@pipeline().parameters.ETL_PROC_WID",
+							"type": "Expression"
+						},
+						"INITIAL_EXTRACT_DATE": {
+							"value": "@pipeline().parameters.INITIAL_EXTRACT_DATE",
+							"type": "Expression"
+						},
+						"LAST_EXTRACT_DATE": {
+							"value": "@pipeline().parameters.LAST_EXTRACT_DATE",
+							"type": "Expression"
+						},
+						"M_FAILURE_VAR": {
+							"value": "@pipeline().parameters.M_FAILURE_VAR",
+							"type": "Expression"
+						},
+						"M_SUCCESS_VAR": {
+							"value": "@pipeline().parameters.M_SUCCESS_VAR",
+							"type": "Expression"
+						},
+						"STEP_KEY": {
+							"value": "@{string(variables('set_variable_param_step'))}",
+							"type": "Expression"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "AzureDatabricks1",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "CustomSIL_OBAW_JobLoadControlUpd",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "CustomSIL_OBAW_POValue_fact",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[usp_CustomSIL_OBAW_JobLoadControlUpd]",
+					"storedProcedureParameters": {
+						"FAILURE": {
+							"value": {
+								"value": "@pipeline().parameters.FAILURE",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"STEP_KEY": {
+							"value": {
+								"value": "@variables('set_variable_param_step')",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"SUCCESS": {
+							"value": {
+								"value": "@pipeline().parameters.SUCCESS",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "synapselink",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "CustomSIL_OBAW_ConfigControlSetupUpd",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "CustomSIL_OBAW_POValue_fact",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[usp_ConfigControl_SetInactive]",
+					"storedProcedureParameters": {
+						"WorkflowName": {
+							"value": {
+								"value": "@pipeline().parameters.WorkflowName",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "synapselink",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"WorkflowName": {
+				"type": "string",
+				"defaultValue": "CustomSIL_OBAW_POValue_fact"
+			},
+			"WORKFLOW_NAME": {
+				"type": "string",
+				"defaultValue": "CustomSIL_OBAW_POValue_fact"
+			},
+			"FOLDER_NAME": {
+				"type": "string",
+				"defaultValue": "Custom_SDE_OBAW_Adaptor"
+			},
+			"OUT_PARAMETER": {
+				"type": "string",
+				"defaultValue": "OUTPUT"
+			},
+			"STEP_KEY": {
+				"type": "string",
+				"defaultValue": "2007"
+			},
+			"ETL_PROC_WID": {
+				"type": "string",
+				"defaultValue": "1"
+			},
+			"INITIAL_EXTRACT_DATE": {
+				"type": "string",
+				"defaultValue": "2026-06-11"
+			},
+			"LAST_EXTRACT_DATE": {
+				"type": "string",
+				"defaultValue": "1953-01-01"
+			},
+			"M_FAILURE_VAR": {
+				"type": "string",
+				"defaultValue": "FAILED"
+			},
+			"M_SUCCESS_VAR": {
+				"type": "string",
+				"defaultValue": "SUCCEEDED"
+			},
+			"SUCCESS": {
+				"type": "string",
+				"defaultValue": "SUCCEEDED"
+			},
+			"FAILURE": {
+				"type": "string",
+				"defaultValue": "''"
+			},
+			"p_StorageAccount": {
+				"type": "string",
+				"defaultValue": "nrdatalakepoc"
+			},
+			"p_FileSystem": {
+				"type": "string",
+				"defaultValue": "nrdata"
+			},
+			"p_Directory": {
+				"type": "string",
+				"defaultValue": "files"
+			},
+			"p_FileName": {
+				"type": "string",
+				"defaultValue": "parameter.csv"
+			},
+			"p_NewParameterText": {
+				"type": "string"
+			},
+			"p_FileContent": {
+				"type": "string"
+			},
+			"OUT_STEP_KEY": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"v_NewParameterText": {
+				"type": "String",
+				"defaultValue": "''"
+			},
+			"v_FinalParameterContent": {
+				"type": "String",
+				"defaultValue": "''"
+			},
+			"v_ParameterLines": {
+				"type": "Array",
+				"defaultValue": []
+			},
+			"v_loadParamvalue": {
+				"type": "String"
+			},
+			"v_parametercode": {
+				"type": "String"
+			},
+			"v_finalParameter": {
+				"type": "String"
+			},
+			"job_variable_param": {
+				"type": "String"
+			},
+			"set_variable_param_step": {
+				"type": "Integer"
+			},
+			"final_merged_data": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-06-16T08:15:53Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

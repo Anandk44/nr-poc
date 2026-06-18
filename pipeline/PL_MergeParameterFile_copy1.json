@@ -1,0 +1,197 @@
+{
+	"name": "PL_MergeParameterFile_copy1",
+	"properties": {
+		"activities": [
+			{
+				"name": "SetReturnValue",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "fileexists",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "pipelineReturnValue",
+					"value": [
+						{
+							"key": "filecontent",
+							"value": {
+								"type": "Expression",
+								"content": "@variables('v_FinalParameterContent')"
+							}
+						}
+					],
+					"setSystemVariable": true
+				}
+			},
+			{
+				"name": "GetMetadata_FileExists",
+				"type": "GetMetadata",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "DelimitedText1",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_FileName": {
+								"value": "@pipeline().parameters.p_FileName",
+								"type": "Expression"
+							}
+						}
+					},
+					"fieldList": [
+						"exists"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"enablePartitionDiscovery": false
+					},
+					"formatSettings": {
+						"type": "DelimitedTextReadSettings"
+					}
+				}
+			},
+			{
+				"name": "fileexists",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "GetMetadata_FileExists",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@activity('GetMetadata_FileExists').output.exists",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "paramterfile_data",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "v_FinalParameterContent",
+								"value": {
+									"value": "@pipeline().parameters.p_NewParameterText",
+									"type": "Expression"
+								}
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "Lkp_ReadExistingParameterFile",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true,
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"dataset": {
+									"referenceName": "DelimitedText1",
+									"type": "DatasetReference",
+									"parameters": {
+										"p_FileName": {
+											"value": "@pipeline().parameters.p_FileName",
+											"type": "Expression"
+										}
+									}
+								},
+								"firstRowOnly": false
+							}
+						},
+						{
+							"name": "parameterfile_data",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Lkp_ReadExistingParameterFile",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "v_FinalParameterContent",
+								"value": {
+									"value": "@concat(\nactivity('Lkp_ReadExistingParameterFile').output.value[0].Prop_0,\ndecodeUriComponent('%0A'),\npipeline().parameters.p_NewParameterText\n)",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"p_NewParameterText": {
+				"type": "string"
+			},
+			"p_FileName": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"v_ParameterLines": {
+				"type": "Array"
+			},
+			"v_FinalParameterContent": {
+				"type": "String"
+			},
+			"v_FileExists": {
+				"type": "String",
+				"defaultValue": "N"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-06-17T09:10:34Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

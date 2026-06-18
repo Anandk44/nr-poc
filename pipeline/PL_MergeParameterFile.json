@@ -1,0 +1,172 @@
+{
+	"name": "PL_MergeParameterFile",
+	"properties": {
+		"activities": [
+			{
+				"name": "Lkp_ReadExistingParameterFile",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"dataset": {
+						"referenceName": "DelimitedText1",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_FileName": {
+								"value": "@pipeline().parameters.p_FileName",
+								"type": "Expression"
+							}
+						}
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "ForEach_ExistingParameterLines",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Lkp_ReadExistingParameterFile",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Lkp_ReadExistingParameterFile').output.value",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Append_data",
+							"type": "AppendVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "v_ParameterLines",
+								"value": {
+									"value": "@item().Prop_0",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "AppendVar_NewParameter",
+				"type": "AppendVariable",
+				"dependsOn": [
+					{
+						"activity": "ForEach_ExistingParameterLines",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "v_ParameterLines",
+					"value": {
+						"value": "@pipeline().parameters.p_NewParameterText",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "SetVar_FinalParameterContent",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "AppendVar_NewParameter",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "v_FinalParameterContent",
+					"value": {
+						"value": "@join(\n    variables('v_ParameterLines'),\n    decodeUriComponent('%0A')\n)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "SetReturnValue",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "SetVar_FinalParameterContent",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "pipelineReturnValue",
+					"value": [
+						{
+							"key": "filecontent",
+							"value": {
+								"type": "Expression",
+								"content": "@variables('v_FinalParameterContent')"
+							}
+						}
+					],
+					"setSystemVariable": true
+				}
+			}
+		],
+		"parameters": {
+			"p_NewParameterText": {
+				"type": "string"
+			},
+			"p_FileName": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"v_ParameterLines": {
+				"type": "Array"
+			},
+			"v_FinalParameterContent": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-06-17T10:17:06Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

@@ -1,0 +1,53 @@
+{
+	"name": "storeprocedurecontrol",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "synapselink",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlDWTable",
+		"schema": [
+			{
+				"name": "LOAD_KEY",
+				"type": "decimal",
+				"precision": 10,
+				"scale": 0
+			},
+			{
+				"name": "STEP_KEY",
+				"type": "decimal",
+				"precision": 10,
+				"scale": 0
+			},
+			{
+				"name": "START_EXTRACT_DATE",
+				"type": "datetime2",
+				"scale": 7
+			},
+			{
+				"name": "END_EXTRACT_DATE",
+				"type": "datetime2",
+				"scale": 7
+			},
+			{
+				"name": "EXTRACT_STATUS",
+				"type": "varchar"
+			},
+			{
+				"name": "LOAD_RUN_DATE",
+				"type": "datetime2",
+				"scale": 7
+			},
+			{
+				"name": "LOAD_TYPE",
+				"type": "varchar"
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "DM_OBAW_SIL_LOAD_CONTROL"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

@@ -1,0 +1,266 @@
+{
+	"name": "CustomSIL_OBAW_ConfigControlSetup_copy1",
+	"properties": {
+		"activities": [
+			{
+				"name": "Lkp_GetNewParameter",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderStoredProcedureName": "[dbo].[usp_ConfigControl_SetActive]",
+						"storedProcedureParameters": {
+							"WorkflowName": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().parameters.WorkflowName",
+									"type": "Expression"
+								}
+							}
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "AzureSynapseAnalyticsTable1",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": true
+				}
+			},
+			{
+				"name": "SetVar_NewParameterText",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Lkp_GetNewParameter",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "v_NewParameterText",
+					"value": {
+						"value": "@activity('Lkp_GetNewParameter').output.firstRow.OUT_PARAMETER",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "merge_data",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "SetVar_NewParameterText",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PL_MergeParameterFile",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"p_NewParameterText": {
+							"value": "@variables('v_NewParameterText')",
+							"type": "Expression"
+						},
+						"p_FileName": {
+							"value": "@pipeline().parameters.p_FileName",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "SetVar_FinalParameterContent",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "merge_data",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "v_FinalParameterContent",
+					"value": {
+						"value": "@activity('merge_data').output.pipelineReturnValue.filecontent",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Execute Pipeline1",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "SetVar_FinalParameterContent",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "write_param_file",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"p_StorageAccount": {
+							"value": "@pipeline().parameters.p_StorageAccount",
+							"type": "Expression"
+						},
+						"p_FileSystem": {
+							"value": "@pipeline().parameters.p_FileSystem",
+							"type": "Expression"
+						},
+						"p_Directory": {
+							"value": "@pipeline().parameters.p_Directory",
+							"type": "Expression"
+						},
+						"p_FileName": {
+							"value": "@pipeline().parameters.p_FileName",
+							"type": "Expression"
+						},
+						"p_FileContent": {
+							"value": "@variables('v_FinalParameterContent')",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"parameters": {
+			"WorkflowName": {
+				"type": "string",
+				"defaultValue": "CustomSIL_OBAW_POValue_fact"
+			},
+			"WORKFLOW_NAME": {
+				"type": "string",
+				"defaultValue": "CustomSIL_Test_Workflow"
+			},
+			"FOLDER_NAME": {
+				"type": "string",
+				"defaultValue": "Custom_SDE_OBAW_Adaptor"
+			},
+			"OUT_PARAMETER": {
+				"type": "string",
+				"defaultValue": "OUTPUT"
+			},
+			"STEP_KEY": {
+				"type": "string",
+				"defaultValue": "2007"
+			},
+			"ETL_PROC_WID": {
+				"type": "string",
+				"defaultValue": "1"
+			},
+			"INITIAL_EXTRACT_DATE": {
+				"type": "string",
+				"defaultValue": "2026-06-11"
+			},
+			"LAST_EXTRACT_DATE": {
+				"type": "string",
+				"defaultValue": "1953-01-01"
+			},
+			"M_FAILURE_VAR": {
+				"type": "string",
+				"defaultValue": "FAILED"
+			},
+			"M_SUCCESS_VAR": {
+				"type": "string",
+				"defaultValue": "SUCCEEDED"
+			},
+			"SUCCESS": {
+				"type": "string",
+				"defaultValue": "SUCCEEDED"
+			},
+			"FAILURE": {
+				"type": "string",
+				"defaultValue": "''"
+			},
+			"p_StorageAccount": {
+				"type": "string",
+				"defaultValue": "nrdatalakepoc"
+			},
+			"p_FileSystem": {
+				"type": "string",
+				"defaultValue": "nrdata"
+			},
+			"p_Directory": {
+				"type": "string",
+				"defaultValue": "files"
+			},
+			"p_FileName": {
+				"type": "string",
+				"defaultValue": "parameter.csv"
+			},
+			"p_NewParameterText": {
+				"type": "string"
+			},
+			"p_FileContent": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"v_NewParameterText": {
+				"type": "String",
+				"defaultValue": "''"
+			},
+			"v_FinalParameterContent": {
+				"type": "String",
+				"defaultValue": "''"
+			},
+			"v_ParameterLines": {
+				"type": "Array",
+				"defaultValue": []
+			},
+			"v_loadParamvalue": {
+				"type": "String"
+			},
+			"v_parametercode": {
+				"type": "String"
+			},
+			"v_finalParameter": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-06-16T08:15:52Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}
